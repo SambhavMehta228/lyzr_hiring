@@ -59,13 +59,9 @@ FastAPI service with proper async handling, background tasks, and all the endpoi
 ### Vector & Embedding Optimizations
 - **Qdrant Integration**: Efficient vector storage with similarity search using OpenAI text-embedding-3-small (1024 dimensions)
 - **BM25 Index Caching**: Pre-built lexical search index with simple tokenization and corpus optimization
-- **Embedding Batch Processing**: Vector operations grouped for reduced API calls and improved throughput
-- **Similarity Score Normalization**: Consistent scoring across different retrieval strategies
 
 ### Graph Database Efficiency
 - **Unified Interface Pattern**: Abstract `GraphDatabaseInterface` with concrete Neo4j adapter using py2neo
-- **Connection Pooling**: Persistent connections with proper lifecycle management
-- **Cypher Query Optimization**: Generated queries with proper indexing hints and relationship constraints
 - **In-Memory Graph Caching**: NetworkX-based local graph for fast traversal without DB round-trips
 
 ### Memory & Resource Management
@@ -73,24 +69,6 @@ FastAPI service with proper async handling, background tasks, and all the endpoi
 - **Garbage Collection**: Explicit cleanup of large objects and intermediate results
 - **Memory-Mapped Processing**: Efficient handling of large entity batches without full memory loading
 - **Resource Pool Management**: Controlled concurrency limits to prevent memory exhaustion
-
-### LLM Integration Optimizations
-- **Prompt Engineering**: Structured prompts for entity extraction, relationship discovery, and query analysis
-- **Temperature Tuning**: Optimized model parameters (0.2 for consistency, 0.7 for creativity)
-- **Token Limit Management**: Efficient prompt sizing to maximize information density
-- **Error Handling**: Robust fallback mechanisms for API failures and rate limits
-
-### Data Pipeline Efficiency
-- **Entity Resolution**: Fuzzy matching with similarity thresholds and confidence scoring
-- **Relationship Extraction**: LLM-driven discovery with relationship type classification
-- **Deduplication**: Multi-stage entity linking with name normalization and attribute matching
-- **Batch Processing**: Configurable batch sizes with progress tracking and error recovery
-
-### API Performance Features
-- **FastAPI Async Endpoints**: All operations use async/await patterns with proper error handling
-- **Background Task Management**: Long-running operations don't block the event loop
-- **Response Streaming**: Real-time progress updates for build operations
-- **Health Monitoring**: Comprehensive stats endpoints with performance metrics
 
 ### Query Intelligence
 - **Strategy Selection**: LLM-powered query analysis to choose optimal search approach
@@ -330,25 +308,6 @@ curl -X POST "http://localhost:8000/query" \
 ```
 
 
-## The Bottom Line
-
-We built a system that:
-- Processes 1000 entities in 5 minutes instead of 44
-- Uses hybrid retrieval with BM25 + embeddings + graph traversal
-- Implements async-first architecture with background processing
-- Provides intelligent query routing and multi-step reasoning
-- Supports multiple graph databases with a unified interface
-- Actually works in production (imagine that)
-
-**Performance Stats:**
-- **88% faster** knowledge base building
-- **65% faster** query responses  
-- **58% less** memory usage
-- **Hybrid retrieval** with RRF fusion
-- **Async processing** with non-blocking operations
-
----
-
 *"We don't expect perfection. We expect potential — and how you think."* 
 
-But honestly, I love to delivere both.
+But honestly, I love to deliver both.
