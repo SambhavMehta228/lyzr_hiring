@@ -111,10 +111,8 @@ cp .env.example .env
 # Edit .env with your actual API keys
 ```
 
-### Running the Demo
+### Running the code
 ```bash
-# Build the knowledge base (this might take a few minutes)
-python demo.py
 
 # Or start the API server
 python -m src.api
@@ -127,19 +125,24 @@ The API will be available at `http://localhost:8000` with automatic docs at `htt
 
 ### Environment Variables
 ```bash
-# Required
-OPENAI_API_KEY=your_openai_api_key_here
+# OpenAI API Configuration
+OPENAI_API_KEY=sk-proj-your-openai-api-key-here
 
-# Optional but recommended
-QDRANT_URL=http://localhost:6333
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your_password
+# Qdrant Vector Database Configuration
+QDRANT_URL=https://your-qdrant-instance.cloud.qdrant.io:6333
+QDRANT_API_KEY=your-qdrant-api-key-here
 
-# Performance tuning
+# Graph Database Configuration
+GRAPH_BACKEND=neo4j
+NEO4J_URI=neo4j://127.0.0.1:7687
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=your-neo4j-password
+
+# Service Configuration
 MAX_ENTITIES=1000
 BATCH_SIZE=50
-ENABLE_CROSS_ENCODER=true
+ENABLE_ENTITY_RESOLUTION=true
+ENABLE_RELATIONSHIP_EXTRACTION=true
 ```
 
 ### Pipeline Configuration
