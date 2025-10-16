@@ -19,6 +19,13 @@ But honestly, I love to deliver both.
 2. **Agentic Retrieval System**: Dynamic AI agents that pick the right tool for the job (vector search, graph traversal, or logical filtering)
 3. **Extensible Interface**: Works with Neo4j, AWS Neptune, and your sanity
 
+**The Numbers Don't Lie:**
+- **Initial Processing**: 1000 entities in 44 minutes → **5 minutes** (88% reduction)
+- **Query Response Time**: Average 2.3 seconds → **0.8 seconds** (65% improvement)  
+- **Memory Usage**: 2.1GB → **890MB** (58% reduction)
+- **Concurrent Users**: Single-threaded → **50+ concurrent requests**
+- **Graph Operations**: 2.1s average traversal → **0.3s with caching**
+
 ## End-to-End Workflow: From Raw Data to Queryable Knowledge Graph
 
 This section describes the complete lifecycle: ingestion → preprocessing → embedding → ontology/graph construction → storage in Qdrant and Neo4j → retrieval serving. Implementation touches `src/pipeline.py`, `src/data_loader.py`, `src/ontology_generator.py`, `src/graph_builder.py`, `src/graph_db_interface.py`, and `src/agentic_retrieval.py`.
@@ -120,12 +127,7 @@ This section describes the complete lifecycle: ingestion → preprocessing → e
 - **Configuration Management**: Environment-based configuration with runtime updates
 - **Monitoring Integration**: Built-in metrics and logging for operational visibility
 
-**The Numbers Don't Lie:**
-- **Initial Processing**: 1000 entities in 44 minutes → **5 minutes** (88% reduction)
-- **Query Response Time**: Average 2.3 seconds → **0.8 seconds** (65% improvement)  
-- **Memory Usage**: 2.1GB → **890MB** (58% reduction)
-- **Concurrent Users**: Single-threaded → **50+ concurrent requests**
-- **Graph Operations**: 2.1s average traversal → **0.3s with caching**
+
 
 ## Quick Start (The Non-Boring Way)
 
