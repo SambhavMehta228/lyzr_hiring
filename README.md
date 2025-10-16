@@ -6,7 +6,10 @@
 
 Welcome to yet another knowledge graph system, except this one doesn't just *talk* about being intelligent—it actually *is*. We've built a production-ready platform that transforms unstructured chaos into structured knowledge graphs, then uses autonomous AI agents to query them like they actually understand what you're asking for.
 
-**TL;DR**: Documents go in → Smart agents come out → You get answers that actually make sense.
+
+*"We don't expect perfection. We expect potential and how you think."* 
+
+But honestly, I love to deliver both.
 
 ## Architecture Overview
 
@@ -16,28 +19,63 @@ Welcome to yet another knowledge graph system, except this one doesn't just *tal
 2. **Agentic Retrieval System**: Dynamic AI agents that pick the right tool for the job (vector search, graph traversal, or logical filtering)
 3. **Extensible Interface**: Works with Neo4j, AWS Neptune, and your sanity
 
-## File Structure & What Each Thing Actually Does
+## End-to-End Workflow: From Raw Data to Queryable Knowledge Graph
 
-### Core Pipeline (`src/pipeline.py`)
-The orchestrator that makes everything dance together. Handles the entire flow from loading your data to building a knowledge graph that doesn't suck. Provides the main `AgenticGraphRAGService` class that you'll actually interact with.
+This section describes the complete lifecycle: ingestion → preprocessing → embedding → ontology/graph construction → storage in Qdrant and Neo4j → retrieval serving. Implementation touches `src/pipeline.py`, `src/data_loader.py`, `src/ontology_generator.py`, `src/graph_builder.py`, `src/graph_db_interface.py`, and `src/agentic_retrieval.py`.
 
-### Agentic Retrieval (`src/agentic_retrieval.py`)
-The brain of the operation. Implements hybrid search combining dense embeddings, BM25 lexical search, and graph traversal with Reciprocal Rank Fusion. Includes optional cross-encoder reranking because we're not savages.
+### 1) Data Ingestion & Streaming
+- **Sources**: Structured/semistructured/unstructured text (defaults to DBpedia-style entities). Custom sources can be adapted via `src/data_loader.py`.
+- **Batch streaming**: The loader yields items in batches (`BATCH_SIZE`) to bound memory. Each item includes `id`, `text`/`content`, and optional metadata (`title`, `url`, `type`, timestamps).
 
-### Graph Builder (`src/graph_builder.py`)
-Builds and manages the in-memory knowledge graph using NetworkX. Handles vector store integration, similarity search, and exports clean Cypher queries for your database of choice.
+### 2) Text Normalization & Preprocessing
+- **Language detection & filtering**: Non-target languages can be skipped or routed to language-specific pipelines.
+- **Normalization**: Unicode NFKC, lowercasing (configurable), whitespace compaction, control-char stripping.
+- **Cleaning**: Boilerplate removal (HTML/Markdown), code block stripping (optional), URL/email normalization.
+- **Sentence segmentation & chunking**: Rule-based or token-aware chunking to target embedding limits while preserving semantic boundaries; overlaps (`stride`) configurable.
 
-### Graph Database Interface (`src/graph_db_interface.py`)
-Unified interface for multiple graph databases. Currently supports Neo4j with Cypher queries, but designed to be extensible for AWS Neptune and others.
+### 3) Embedding Generation
+- **Model**: OpenAI `text-embedding-3-small` (1024 dims) by default; pluggable via config.
+- **Throughput controls**: Batching, concurrency limits, jittered exponential backoff, and retry on transient failures; per-minute token budgeting to respect rate limits.
+- **Deterministic IDs**: Vector IDs derive from content checksums + source IDs to enable repeatable upserts.
 
-### Ontology Generator (`src/ontology_generator.py`)
-LLM-powered entity extraction and relationship discovery. Performs entity resolution and deduplication so you don't end up with 47 different "Apple" entities.
+### 4) Vector Storage in Qdrant
+- **Collection schema**: A collection is created (if missing) with 1024-dim vectors, cosine/similarity metric, and payload schema for metadata (source, chunk_id, entity_ids, timestamps, etc.).
 
-### Data Loader (`src/data_loader.py`)
-Handles the heavy lifting of loading datasets (defaults to DBpedia entities) with batched iteration for scalable processing.
+### 5) Ontology Generation (Entities, Types, and Relationships)
+- **Entity extraction**: `src/ontology_generator.py` prompts an LLM to extract canonical entities (names, types, aliases) and salient properties.
+- **Coreference & entity resolution**: Candidate entities are matched/merged using alias normalization, string similarity, and context; stable canonical IDs are assigned.
+- **Relationship discovery**: The LLM proposes relation triples with types and confidences; low-confidence edges can be deferred or require corroboration.
+- **Schema guidance**: A lightweight, evolving ontology constrains allowable entity/edge types while staying extensible.
 
-### API Layer (`src/api.py`)
-FastAPI service with proper async handling, background tasks, and all the endpoints you'd expect from a service that claims to be production-ready.
+### 6) In-Memory Graph Construction
+- **Graph build**: `src/graph_builder.py` materializes entities as nodes and relations as edges in NetworkX with properties (e.g., `name`, `type`, `confidence`, provenance).
+- **Weights & constraints**: Edge weights reflect confidence and recency; metapath constraints can be enforced to curb spurious connections.
+- **Indexing**: Fast maps from `canonical_entity_id` → node, and `alias` → canonical to support retrieval and deduplication.
+- **Vector links**: Chunks stored in Qdrant are linked via payload references to the entities they support, enabling hybrid retrieval.
+
+### 7) Graph Database Sync (Neo4j via Cypher)
+- **Abstraction**: `src/graph_db_interface.py` exposes an interface; the Neo4j adapter translates nodes/edges to Cypher upserts.
+- **Batched writes**: Nodes and relationships are written in batches with bounded concurrency to avoid DB saturation.
+- **Idempotency & merge**: `MERGE` patterns ensure repeated runs update properties rather than duplicating entities.
+- **Failure handling**: Transient DB errors are retried; poison batches are quarantined with actionable logs.
+
+### 8) Retrieval Index Assembly (Hybrid)
+- **BM25 lexical index**: Built over cleaned text to complement vector search for keyword-heavy queries.
+- **Qdrant vector search**: Used for semantic recall; payload filters restrict by entity type/source when requested.
+- **Graph traversal**: Starting from retrieved entities/chunks, the graph is traversed under metapath and depth constraints with depth decay.
+- **Reciprocal Rank Fusion (RRF)**: Scores from BM25, vectors, and traversal are fused; optional cross-encoder reranking increases precision.
+
+### 9) Parallelism, Concurrency, and Backpressure
+- **Async orchestration**: `src/pipeline.py` coordinates async steps; I/O-heavy work is fully non-blocking.
+- **Thread offloading**: CPU-bound tasks (tokenization, BM25 building, NetworkX mutations) are dispatched to a thread pool with a bounded work queue.
+- **Bounded concurrency**: Semaphores limit in-flight calls to external services (OpenAI, Qdrant, Neo4j) to stay within quotas.
+- **Pipelined stages**: Ingestion → preprocess → embed → upsert can run as a streaming pipeline; batches flow through without waiting for the entire corpus.
+- **Checkpointing**: Periodic progress markers (last successful batch IDs/checksums) enable resumable runs.
+
+### 11) Serving Path (API)
+- **Build**: `POST /build` triggers background execution of the pipeline; progress available at `GET /build/status`.
+- **Query**: `POST /query` performs hybrid retrieval with optional multi-step reasoning; results include supporting chunks and graph paths.
+- **Introspection**: `GET /ontology` and `GET /export/cypher` expose the current schema and a portable graph export.
 
 ## Performance Highlights: The Technical Deep Dive
 
@@ -311,6 +349,3 @@ curl -X POST "http://localhost:8000/query" \
 ```
 
 
-*"We don't expect perfection. We expect potential — and how you think."* 
-
-But honestly, I love to deliver both.
