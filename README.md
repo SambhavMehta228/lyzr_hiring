@@ -2,6 +2,10 @@
 
 *Because apparently, we needed another RAG system that actually works.*
 
+## 🎥 Demo Video
+
+[**Watch the Demo**](https://drive.google.com/file/d/1pdixYZdFpmy_cfgadeEGnvkR6b6VT6nM/view?usp=sharing) - See the system in action!
+
 ## What Even Is This?
 
 Welcome to yet another knowledge graph system, except this one doesn't just *talk* about being intelligent—it actually *is*. We've built a production-ready platform that transforms unstructured chaos into structured knowledge graphs, then uses autonomous AI agents to query them like they actually understand what you're asking for.
